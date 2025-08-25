@@ -20,7 +20,6 @@ const { log } = require('console');
 
 // Initialize Express app
 const app = express();
-app.use(cors());
 app.use(express.json());
 
 // --------- Setup & Clients ----------
@@ -36,6 +35,26 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET,
     secure: true
 });
+
+// Production-ready CORS configuration
+const allowedOrigins = process.env.NODE_ENV === 'production' ?
+    [process.env.FRONTEND_URL, 'https://your-flutter-app-domain.onrender.com'] : // Replace with your actual domain
+    ['http://localhost:5001'];
+
+const corsOptions = {
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Handle pre-flight requests
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
@@ -1644,9 +1663,8 @@ app.get('/', (req, res) => {
     res.send('E-Commerce Backend API is running!');
 });
 
-const IP = '0.0.0.0';
 const PORT = process.env.PORT || 5001;
 
-app.listen(PORT, IP, () => {
-    console.log(`🚀 Server running on http://${IP}:${PORT}`);
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
 });
